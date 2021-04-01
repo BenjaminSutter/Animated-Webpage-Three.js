@@ -1,0 +1,509 @@
+ <!-- 
+ * File: Project 3 - Sutter.html
+ * Author: Ben Sutter
+ * Date: February 11th, 2021
+ * Purpose: Creates a scene with six shapes and the ability to preform many transformations/toggles
+ * Most of code for this project is from modeling-starter.html 
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Project 3 - Sutter</title>
+<style>
+</style>
+<script src="three.min.js"></script>
+<script>
+
+"use strict";
+
+var scene, camera, renderer; // Three.js rendering basics.
+
+var canvas; // The canvas on which the image is rendered.
+
+var model; // Contains the visible objects in the scene, but
+// not the lights or camera.  The model can be
+// rotated using the keyboard. 
+
+//Shapes declared here so they can be turned on and off
+var torus, torusKnot, cylinder, sphere, icosahedron, cube;
+
+// Nodes in the scene graphs that are modified as part of the animation:
+var sphereRotator; // The sphere is a child of this object; rotating
+// this object about the y-axis rotates the sphere.
+
+//Same thing as sphereRotater, but for the other five shapes
+var cylinderRotator, icosahedronRotator, cubeRotator, knotRotator, torusRotator;
+
+//Declares lights used to light scene    
+var cameraLight, overheadLight, leftLight, rightLight;
+
+var animating = false; // This is set to true when an animation is running.
+
+
+/*  Create the scene graph.  This function is called once, as soon as the page loads.
+ *  The renderer has already been created before this function is called.*/
+function createWorld() {
+
+    renderer.setClearColor(0xffffff); // Sets background to white
+
+    scene = new THREE.Scene();
+
+    // create a camera, sitting on the positive z-axis.  The camera is not part of the scene.
+    camera = new THREE.PerspectiveCamera(60, canvas.width / canvas.height, 1, 45);
+    camera.position.z = 30;
+
+    // create some lights and add them to the scene.
+    cameraLight = new THREE.DirectionalLight(0xffffff, 0.8); // a light to shine in the direction the camera faces.
+    cameraLight.position.set(0, 0, 1); // shines down the z-axis
+    cameraLight.visible = true;
+    scene.add(cameraLight);
+
+    overheadLight = new THREE.DirectionalLight(0x613AD6, 2); //A light that shines above the model
+    overheadLight.position.set(0, 1, 0); // shines down the y-axis
+    scene.add(overheadLight);
+
+    leftLight = new THREE.DirectionalLight(0xFF9A9A, 2); //A light that shines from the left side of the model
+    leftLight.position.set(-1, 0, 0); // shines down the x-axis
+    scene.add(leftLight);
+
+    rightLight = new THREE.DirectionalLight(0x768BFF, 2); //A light that shines from the right side of the model
+    rightLight.position.set(1, 0, 0); // shines down the x-axis
+    scene.add(rightLight);
+
+
+
+    // create the model 
+    model = new THREE.Object3D();
+
+    //Found from https://blog.logrocket.com/three-js-geometries-and-materials/#:~:text=We%20can%20create%20geometries%20with,%2C%20torus%2C%20and%20torus%20knot
+    //Creates the Torus Mesh that the shapes transverse in
+    var torusGeo = new THREE.TorusGeometry(10, 5, 16, 50)
+    var meshBasicMaterial = new THREE.MeshBasicMaterial({
+        color: 0x0095DF,
+        wireframe: true,
+        wireframeLinewidth: 2
+    });
+
+    torus = new THREE.Mesh(torusGeo, meshBasicMaterial);
+    model.add(torus)
+    torusRotator = new THREE.Object3D();
+    torusRotator.add(torus);
+    model.add(torusRotator);
+    //End Torus
+
+    //TorusKnot at the center of the scene
+    //Found from https://threejs.org/docs/#api/en/geometries/TorusKnotGeometry
+    torusKnot = new THREE.Mesh(
+        new THREE.TorusKnotGeometry(2, .8, 100, 16),
+        new THREE.MeshPhongMaterial({
+            color: 0xF5C908,
+            specular: 0x101010,
+            shininess: 64
+        })
+    );
+    model.add(torusKnot);
+    knotRotator = new THREE.Object3D();
+    knotRotator.add(torusKnot);
+    model.add(knotRotator);
+    //End TorusKnot
+
+    //Cylinder that rotates around the Torus
+    cylinder = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.3, 0.3, 5),
+        //new THREE.CircleGeometry(5,32,16),
+        new THREE.MeshPhongMaterial({
+            color: 0xFA6A00,
+            specular: 0x101010,
+            shininess: 32
+        })
+    );
+    cylinder.position.x = 6;
+    model.add(cylinder);
+    cylinderRotator = new THREE.Object3D();
+    cylinderRotator.add(cylinder);
+    model.add(cylinderRotator);
+    //End of Cylinder
+
+    //Sphere that rotates around the Torus
+    sphere = new THREE.Mesh(
+        new THREE.SphereGeometry(1, 32, 16),
+        new THREE.MeshPhongMaterial({
+            color: 0x04DB00,
+            specular: 0x101010,
+            shininess: 16
+        })
+    );
+    sphere.position.x = -8;
+    sphereRotator = new THREE.Object3D();
+    sphereRotator.add(sphere);
+    model.add(sphereRotator);
+    //End of sphere
+
+    //Icosahedron that rotates around the Torus
+    //Found from https://threejs.org/docs/#api/en/geometries/IcosahedronGeometry
+    icosahedron = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(1.5, 0),
+        new THREE.MeshPhongMaterial({
+            color: 0x8D0C20,
+            specular: 0x101010,
+            shininess: 32
+        })
+    );
+    icosahedron.position.y = -10.5;
+    icosahedronRotator = new THREE.Object3D();
+    icosahedronRotator.add(icosahedron);
+    model.add(icosahedronRotator);
+    //End of icosahedron
+
+    //Cube that rotates around the Torus
+    cube = new THREE.Mesh(
+        new THREE.BoxGeometry(2, 2, 2),
+        new THREE.MeshPhongMaterial({
+            color: 0x7D0CE8,
+            specular: 0x101010,
+            shininess: 50
+        })
+    );
+    //cube.position.y = 14;
+    cube.position.y = 13.2;
+    cubeRotator = new THREE.Object3D();
+    cubeRotator.add(cube);
+    model.add(cubeRotator);
+    //End of cube
+
+    scene.add(model);
+}
+
+
+//  Render the scene.  This is called for each frame of the animation.
+function render() {
+    renderer.render(scene, camera);
+}
+
+
+/*  When an animation is in progress, this function is called just before rendering each
+ *  frame of the animation, to make any changes necessary in the scene graph to prepare
+ *  for that frame.
+ */
+function updateForFrame() {
+
+    var speed = document.getElementById("myRange").value;
+    torusRotator.rotation.z -= speed / 6500;
+    cylinderRotator.rotation.z += speed / 2000;
+    sphereRotator.rotation.z -= speed / 1500;
+    icosahedronRotator.rotation.z += speed / 1100;
+    cubeRotator.rotation.z -= speed / 900;
+
+    knotRotator.rotation.x -= speed / 1000;
+    knotRotator.rotation.z -= speed / 1000;
+
+}
+
+
+//--------------------------- animation support -----------------------------------
+
+/* This function runs the animation by calling updateForFrame() then calling render().
+ * Finally, it arranges for itself to be called again to do the next frame.  When the
+ * value of animating is set to false, this function does not schedule the next frame,
+ * so the animation stops.
+ */
+function doFrame() {
+
+    if (animating) {
+        updateForFrame();
+        render();
+        requestAnimationFrame(doFrame);
+    }
+
+}
+
+
+/* Responds when the setting of the "Animate" checkbox is changed.  This
+ * function will start or stop the animation, depending on its setting.
+ */
+function doAnimateCheckbox() {
+
+    var anim = document.getElementById("animate").checked;
+
+    if (anim != animating) {
+        animating = anim;
+
+        if (animating) {
+            doFrame();
+        }
+    }
+
+}
+
+//Toggles visible lights based on checkboxes. Is called whenever a box is checked/unchecked
+//Found from https://discourse.threejs.org/t/best-way-to-turn-off-a-light/2075
+function toggleLights() {
+
+    if (document.getElementById("camLight").checked) {
+        cameraLight.visible = true;
+    } else {
+        cameraLight.visible = false;
+    }
+
+    if (document.getElementById("overLight").checked) {
+        overheadLight.visible = true;
+    } else {
+        overheadLight.visible = false;
+    }
+
+    if (document.getElementById("leftLight").checked) {
+        leftLight.visible = true;
+    } else {
+        leftLight.visible = false;
+    }
+
+    if (document.getElementById("rightLight").checked) {
+        rightLight.visible = true;
+    } else {
+        rightLight.visible = false;
+    }
+    render(); //Renders the scene (updates all changes made)
+}
+
+//Toggles visible shapes based on checkboxes. Is called whenever a box is checked/unchecked
+function toggleShapes() {
+
+    if (document.getElementById("torus").checked) {
+        torus.visible = true;
+    } else {
+        torus.visible = false;
+    }
+
+    if (document.getElementById("knot").checked) {
+        torusKnot.visible = true;
+    } else {
+        torusKnot.visible = false;
+
+    }
+
+    if (document.getElementById("cylinder").checked) {
+        cylinder.visible = true;
+    } else {
+        cylinder.visible = false;
+    }
+
+    if (document.getElementById("sphere").checked) {
+        sphere.visible = true;
+    } else {
+        sphere.visible = false;
+    }
+
+    if (document.getElementById("icosahedron").checked) {
+        icosahedron.visible = true;
+    } else {
+        icosahedron.visible = false;
+    }
+
+    if (document.getElementById("cube").checked) {
+        cube.visible = true;
+    } else {
+        cube.visible = false;
+    }
+
+    render(); //Renders the scene (updates all changes made)
+}
+
+//Toggles the mesh of the torus depending on radio button. Is called whenever a radio button is selected
+function toggleMesh() {
+
+    if (document.getElementById("meshOn").checked) {
+        //Could have made these global variables so they don't need to be created everytime
+        //Left them here for easier readability
+        torus.material = new THREE.MeshBasicMaterial({
+            color: 0x0095DF,
+            wireframe: true,
+            wireframeLinewidth: 2
+        });
+    } else {
+        torus.material = new THREE.MeshPhongMaterial({
+            color: 0x0095DF,
+            specular: 0x101010,
+            shininess: 75
+        });
+    }
+    render(); //Renders the scene (updates all changes made)
+}
+
+
+//----------------------------- keyboard support ----------------------------------
+
+/*  Responds to user's key press.  Here, it is used to rotate the model.'
+Other key codes found from https://css-tricks.com/snippets/javascript/javascript-keycodes/
+ */
+function doKey(event) {
+
+    var code = event.keyCode;
+    var rotated = true;
+    switch (code) {
+        case 37:
+            model.rotation.y -= 0.03;
+            break; // left arrow
+        case 39:
+            model.rotation.y += 0.03;
+            break; // right arrow
+        case 38:
+            model.rotation.x -= 0.03;
+            break; // up arrow
+        case 40:
+            model.rotation.x += 0.03;
+            break; // down arrow
+        case 33:
+            model.rotation.z -= 0.03;
+            break; // page up
+        case 34:
+            model.rotation.z += 0.03;
+            break; // page down
+        case 65:
+            camera.position.x += 1;
+            break; // a key
+        case 68:
+            camera.position.x -= 1;
+            break; // d key
+        case 83:
+            camera.position.y += 1;
+            break; // s key
+        case 87:
+            camera.position.y -= 1;
+            break; // w key
+        case 187:
+            camera.position.z -= 1;
+            break; // add (equals)
+        case 107:
+            camera.position.z -= 1;
+            break; // add (numpad)
+        case 189:
+            camera.position.z += 1;
+            break; // subtract (dash)
+        case 109:
+            camera.position.z += 1;
+            break; // subtract (numpad)
+        case 36:
+            model.rotation.set(0, 0, 0);
+            camera.position.z = 30;
+            camera.position.y = 0;
+            camera.position.x = 0;
+            document.getElementById("myRange").value = 50;
+            break; // home key resets things to default.
+            //Decided against updating everything to default (checkboxes and such)
+        default:
+            rotated = false;
+    }
+    if (rotated) {
+        event.preventDefault(); // Prevent keys from scrolling the page.
+        if (!animating) { // (if an animation is running, no need for an extra render)
+            render();
+        }
+    }
+
+}
+
+
+
+//----------------------------------------------------------------------------------
+/**
+ *  This init() function is called when by the onload event when the document has loaded.
+ */
+function init() {
+
+    try {
+        canvas = document.getElementById("glcanvas");
+        renderer = new THREE.WebGLRenderer({
+            canvas: canvas,
+            antialias: true
+        });
+    } catch (e) {
+        document.getElementById("canvas-holder").innerHTML =
+            "<h3><b>Sorry, WebGL is required but is not available.</b><h3>";
+        return;
+    }
+    document.addEventListener("keydown", doKey, false); //Listens to key presses
+
+    //Animates the scene if checkbox is chcked
+    document.getElementById("animate").checked = false;
+    document.getElementById("animate").onchange = doAnimateCheckbox;
+
+    //Checks all of the lights on by default
+    document.getElementById("camLight").checked = true;
+    document.getElementById("overLight").checked = true;
+    document.getElementById("rightLight").checked = true;
+    document.getElementById("leftLight").checked = true;
+    //When a lights checkbox state is changed, toggleLights
+    document.getElementById("camLight").onchange = toggleLights;
+    document.getElementById("overLight").onchange = toggleLights;
+    document.getElementById("rightLight").onchange = toggleLights;
+    document.getElementById("leftLight").onchange = toggleLights;
+
+    //Checks all of the shapes on by default
+    document.getElementById("torus").checked = true;
+    document.getElementById("knot").checked = true;
+    document.getElementById("cylinder").checked = true;
+    document.getElementById("sphere").checked = true;
+    document.getElementById("icosahedron").checked = true;
+    document.getElementById("cube").checked = true;
+    //When a lights checkbox state is changed, toggleShapes
+    document.getElementById("torus").onchange = toggleShapes;
+    document.getElementById("knot").onchange = toggleShapes;
+    document.getElementById("cylinder").onchange = toggleShapes;
+    document.getElementById("sphere").onchange = toggleShapes;
+    document.getElementById("icosahedron").onchange = toggleShapes;
+    document.getElementById("cube").onchange = toggleShapes;
+
+    //Sets On to checked by default, updates mesh upon change
+    document.getElementById("meshOn").checked = true;
+    document.getElementById("meshOn").onclick = toggleMesh;
+    document.getElementById("meshOff").onclick = toggleMesh;
+
+    createWorld();
+    render();
+
+}
+</script>
+</head>
+<body onload="init()">
+    
+    <h3>Project 3 - Sutter </h3>
+    
+   <p><b>Use Arrow keys, PageUp, PageDown to rotate the model.
+      <br>+ key to zoom in and - key to zoom out. W,A,S and D keys to move the model.</b>
+   </p>
+    
+    <!-- Holds the Animation checkbox, Rotation speed slider, and Torus Mesh radio buttons -->
+   <p><b><label><input type="checkbox" id="animate"> Animated &nbsp;|&nbsp;</label> 
+      <label>&nbsp;Rotation Speed<input type="range" min="1" max="200" value="50" class="slider" id="myRange"></label>
+      &nbsp;|&nbsp; Torus Mesh:
+      <label><input type="radio" name="model" id="meshOn">On</label>
+      <label><input type="radio" name="model" id="meshOff">Off</label>
+      </b>
+   </p>
+    
+    <!-- Holds all of the checkboxes for the active lights -->
+   <p><b>Active lights:</b>
+      <br><label><input type="checkbox" id="camLight">Camera Light</label>
+      <label><input type="checkbox" id="overLight">Overhead Light</label>
+      <label><input type="checkbox" id="rightLight">Right Light</label>
+      <label><input type="checkbox" id="leftLight">Left Light</label>
+   </p>
+    
+    <!-- Holds all of the checkboxes for the active shapes -->
+   <p><b>Active shapes:</b>
+      <br><label><input type="checkbox" id="torus">Torus</label>
+      <label><input type="checkbox" id="knot">Torus knot</label>
+      <label><input type="checkbox" id="cylinder">Cylinder</label>
+      <label><input type="checkbox" id="sphere">Sphere</label>
+      <label><input type="checkbox" id="icosahedron">Icosahedron</label>
+      <label><input type="checkbox" id="cube">Cube</label>
+   </p>
+    
+   <div id="canvas-holder">
+      <canvas id="glcanvas" width="650" height="650"></canvas>
+   </div>
+    
+</body>
+</html>
